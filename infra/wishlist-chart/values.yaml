@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────
+# Configurações da imagem
+# ─────────────────────────────────────────
+image:
+  repository: wishlist-app
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# ─────────────────────────────────────────
+# Escala da aplicação
+# ─────────────────────────────────────────
+replicaCount: 2
+
+# ─────────────────────────────────────────
+# Configurações do Service
+# ─────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# ─────────────────────────────────────────
+# Recursos de CPU e Memória
+# ─────────────────────────────────────────
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "250m"
+    memory: "256Mi"
+
+# ─────────────────────────────────────────
+# Health checks
+# ─────────────────────────────────────────
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# ─────────────────────────────────────────
+# Variáveis de ambiente da aplicação
+# ─────────────────────────────────────────
+env:
+  APP_ENV: "production"
+  PORT: "8080"
+
+# ─────────────────────────────────────────
+# Anotações extras (Prometheus virá aqui no Módulo 4)
+# ─────────────────────────────────────────
+
+# Substitua a linha serviceAnnotations: {} por:
+serviceAnnotations:
+  prometheus.io/scrape: "true"    # Liga o scrape para este Service
+  prometheus.io/path: "/metrics"  # Endpoint onde as métricas vivem
+  prometheus.io/port: "8080"      # Porta do container (não do Service)
+  prometheus.io/scheme: "http"    # Protocolo (http ou https)
+
+# Annotations aplicadas diretamente nos pods
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8080"
+  prometheus.io/scheme: "http"
+
+# ─────────────────────────────────────────
+# Labels extras aplicados a todos os recursos
+# ─────────────────────────────────────────
+extraLabels: {}
+
+
+# ServiceMonitor (para ambientes com Prometheus Operator)
+serviceMonitor:
+  enabled: true
+  path: /metrics
+  interval: 15s
+  scrapeTimeout: 10s

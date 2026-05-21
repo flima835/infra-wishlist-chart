@@ -1,0 +1,11 @@
+Wishlist App instalada com sucesso!
+
+Release : {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Réplicas : {{ .Values.replicaCount }}
+Imagem   : {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+Para testar dentro do cluster:
+  kubectl run curl-test --image=curlimages/curl -it --rm \
+    --restart=Never -n {{ .Release.Namespace }} -- \
+    curl http://{{ include "wishlist.name" . }}-svc/health

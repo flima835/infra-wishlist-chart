@@ -1,0 +1,34 @@
+# .github/workflows/deploy.yml
+name: Build e Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'                  # Só dispara quando o código muda
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build e push da imagem
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t ghcr.io/${{ github.repository }}/wishlist:${IMAGE_TAG} ./app
+          docker push ghcr.io/${{ github.repository }}/wishlist:${IMAGE_TAG}
+
+      - name: Atualizar tag no repo de infra
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          # Atualiza o values.yaml com a nova tag
+          sed -i "s/tag: .*/tag: \"${IMAGE_TAG}\"/" \
+            infra/wishlist-chart/values.yaml
+
+          git config user.email "ci@github.com"
+          git config user.name "GitHub Actions"
+          git add infra/wishlist-chart/values.yaml
+          git commit -m "ci: atualiza imagem para ${IMAGE_TAG}"
+          git push
+          # ArgoCD detecta o push e sincroniza automaticamente ✓

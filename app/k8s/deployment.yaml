@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wishlist-app
+  namespace: wishlist
+  labels:
+    app: wishlist-app
+    version: "1.0.0"
+spec:
+  replicas: 2                        # Duas réplicas = alta disponibilidade
+  selector:
+    matchLabels:
+      app: wishlist-app              # Liga o Deployment aos seus Pods
+  template:
+    metadata:
+      labels:
+        app: wishlist-app
+        version: "1.0.0"
+    spec:
+      # Segurança: impede escalada de privilégios no container
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+
+      containers:
+        - name: wishlist-app
+          image: wishlist-app:1.0.0  # Imagem que buildamos no Módulo 1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+
+          # Limites de recurso: evita que um pod consuma o nó inteiro
+          resources:
+            requests:
+              cpu: "100m"            # 0.1 vCPU garantido
+              memory: "128Mi"
+            limits:
+              cpu: "250m"            # Máximo de 0.25 vCPU
+              memory: "256Mi"
+
+          # Liveness: se falhar, o Kubernetes reinicia o pod
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+
+          # Readiness: enquanto falhar, o pod não recebe tráfego
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 2
+
+          # Variáveis de ambiente via ConfigMap/Secret (boa prática)
+          env:
+            - name: APP_ENV
+              value: "production"
+            - name: PORT
+              value: "8080"

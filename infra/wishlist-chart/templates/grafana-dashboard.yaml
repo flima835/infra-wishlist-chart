@@ -1,0 +1,32 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wishlist.name" . }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wishlist.labels" . | nindent 4 }}
+    # Label que o Grafana Operator usa para importar dashboards
+    grafana_dashboard: "1"
+data:
+  wishlist-dashboard.json: |
+    {
+      "title": "Wishlist App",
+      "panels": [
+        {
+          "title": "Requisições por segundo",
+          "type": "graph",
+          "targets": [{
+            "expr": "rate(wishlist_requests_total[5m])"
+          }]
+        },
+        {
+          "title": "Latência P95",
+          "type": "graph",
+          "targets": [{
+            "expr": "histogram_quantile(0.95, rate(wishlist_request_duration_seconds_bucket[5m]))"
+          }]
+        }
+      ]
+    }
+{{- end }}

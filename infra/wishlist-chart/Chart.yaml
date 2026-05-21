@@ -1,0 +1,9 @@
+apiVersion: v2
+name: wishlist-chart
+description: Helm chart para a aplicação Lista de Desejos
+type: application
+version: 0.1.0        # Versão do chart em si
+appVersion: "1.0.0"   # Versão da aplicação dentro do chart
+maintainers:
+  - name: Felipe-Lima
+    email: flima835@gmail.com

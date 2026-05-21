@@ -1,0 +1,39 @@
+# infra/argocd/wishlist-project.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: wishlist-project
+  namespace: argocd
+spec:
+  description: "Projeto isolado para a Wishlist App"
+
+  # Repositórios Git permitidos como fonte
+  sourceRepos:
+    - https://github.com/flima835/repo.git
+
+  # Clusters e namespaces de destino permitidos
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: wishlist
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+
+  # Recursos Kubernetes permitidos (allowlist)
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+
+  # Impede deploy de recursos de cluster sensíveis
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+
+  # Roles dentro do projeto
+  roles:
+    - name: developer
+      description: "Pode sincronizar mas não deletar"
+      policies:
+        - p, proj:wishlist-project:developer, applications, sync, wishlist-project/*, allow
+        - p, proj:wishlist-project:developer, applications, get, wishlist-project/*, allow

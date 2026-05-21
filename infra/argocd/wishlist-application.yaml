@@ -1,0 +1,66 @@
+# infra/argocd/wishlist-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wishlist-app
+  namespace: argocd                   # ArgoCD sempre vive no seu próprio namespace
+  # Finalizer garante limpeza dos recursos ao deletar a Application
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app: wishlist
+    team: platform
+spec:
+  # ── Projeto de isolamento ───────────────────────────────────
+  project: default                    # Módulo 3 deste doc explica Projects
+
+  # ── Fonte: onde está o Helm Chart ──────────────────────────
+  source:
+    repoURL: https://github.com/flima835/infra-wishlist-chart.git
+    targetRevision: main              # Branch, tag ou commit SHA
+    path: infra/wishlist-chart        # Caminho do chart dentro do repo
+
+    # Configuração específica do Helm
+    helm:
+      releaseName: wishlist           # Nome do helm release
+      valueFiles:
+        - values.yaml                 # Base
+        - values-prod.yaml            # Override de produção
+      # Parâmetros pontuais (sobrescrevem os valueFiles)
+      parameters:
+        - name: image.tag
+          value: "1.0.0"             # CI atualiza este valor automaticamente
+
+  # ── Destino: onde aplicar ──────────────────────────────────
+  destination:
+    server: https://kubernetes.default.svc   # Cluster local (in-cluster)
+    namespace: wishlist
+
+  # ── Política de sincronização ─────────────────────────────
+  syncPolicy:
+    automated:
+      prune: true        # Remove recursos que sumiram do Git
+      selfHeal: true     # Reverte mudanças manuais no cluster (drift)
+      allowEmpty: false  # Impede sync que resultaria em cluster vazio
+
+    syncOptions:
+      - CreateNamespace=true          # Cria o namespace se não existir
+      - PrunePropagationPolicy=foreground  # Aguarda deleção dos filhos
+      - PruneLast=true                # Deleta recursos órfãos por último
+      - ApplyOutOfSyncOnly=true       # Aplica apenas o que mudou
+
+    # Retry automático em caso de falha transitória
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2                     # Backoff exponencial: 5s, 10s, 20s…
+        maxDuration: 3m
+
+  # ── Janela de sincronização (opcional) ───────────────────
+  # Impede sync automático fora do horário comercial em prod
+  # ignoreDifferences:
+  #   - group: apps
+  #     kind: Deployment
+  #     jsonPointers:
+  #       - /spec/replicas            # Ignora mudanças de HPA no replicas
