@@ -4,9 +4,9 @@ metadata:
   name: {{ include "wishlist.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "wishlist.labels" . | nindent 4 }}
+      {{- include "wishlist.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "wishlist.selectorLabels" . | nindent 6 }}
