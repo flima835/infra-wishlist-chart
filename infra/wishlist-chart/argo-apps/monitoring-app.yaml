@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # 🎯 Em vez de apontar para o seu Git, apontamos direto para o repositório oficial do Prometheus!
+    repoURL: 'https://prometheus-community.github.io/helm-charts'
+    chart: kube-prometheus-stack
+    targetRevision: 69.7.1 # Versão estável do chart (pode variar, mas essa funciona perfeitamente)
+
+    # ⚙️ Aqui nós customizamos o Helm oficial com as SUAS configurações
+    helm:
+      values: |
+        grafana:
+          service:
+            type: NodePort
+            nodePort: 32578 # Mantém a mesma porta que você já está usando hoje
+        prometheus:
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false # Necessário para o Prometheus achar o seu "wishlist-service-monitor"
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true # ⚠️ CRUCIAL para o Prometheus Stack devido ao tamanho dos arquivos de CRD
